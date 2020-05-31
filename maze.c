@@ -166,27 +166,7 @@ void pick_random_next_head(maze_tile frontier[], int frontier_length)
   frontier[frontier_length - 1] = picked_tile;
 }
 
-void debugf(const char *format, ...)
-{
-  // This doesn't quite work...
-  #if VERBOSE 
-  va_list rest;
-  va_start(rest, format);
-  printf(format, rest);
-  va_end(rest);
-  #endif
-}
-
-void print_tiles(char *label, maze_tile tiles[], int tiles_length)
-{
-  debugf("%s: ", label);
-  for (int i = 0; i < tiles_length; i++) {
-    debugf("(%d, %d) ", tiles[i].i, tiles[i].j);
-  }
-  debugf("\n");
-}
-
-void render_tiles(int height, int width, tile_type tiles[10][10])
+void render_tiles(int height, int width, tile_type tiles[20][30])
 {
   int character_height = height * 2 + 1;
   int character_width = width * 2 + 1;
@@ -251,20 +231,14 @@ int main(int argc, char **argv)
   maze_tile neighbors[neighbors_max_length];
   maze_dimensions dimensions;
 
-  dimensions.height = 10;
-  dimensions.width = 10;
+  dimensions.height = 20;
+  dimensions.width = 30;
 
-  const int frontier_length = 100;
+  const int frontier_length = 500;
   maze_tile frontier[frontier_length];
   maze_tile seen[frontier_length];
-  maze_path paths[100];
+  maze_path paths[500];
   int paths_length = 0;
-  int maze_edges[100][100];
-  for (int i; i < 100; i++) {
-    for (int j; j < 100; j++) {
-      maze_edges[i][j] = 0;
-    }
-  }
 
   maze_tile start_tile = get_random_perimeter_tile(dimensions);
 
@@ -272,7 +246,13 @@ int main(int argc, char **argv)
   int frontier_p = 0;
   int seen_length = 0;
 
-  maze_tile valid_neighbors[neighbors_max_length];
+  tile_type tiles[20][30];
+  for (int i = 0; i < 30; i++)
+    for (int j = 0; j < 20; j++)
+      tiles[j][i] = no_passages;
+
+
+ maze_tile valid_neighbors[neighbors_max_length];
 
   int until = 0;
   while (frontier_p >= 0 && until <= 50000) {
@@ -281,32 +261,35 @@ int main(int argc, char **argv)
     seen_length++;
     frontier_p--;
     int frontier_length = frontier_p + 1;
-    debugf("head: (%d, %d)\n", head.i, head.j);
-    print_tiles("frontier", frontier, frontier_length);
-    print_tiles("seen", seen, seen_length);
     int neighbors_length = get_neighbors(head, neighbors, dimensions);
     int valid_neighbors_length = left_disjunction(neighbors, neighbors_length, frontier, frontier_length, valid_neighbors);
     maze_tile valid_unseen_neighbors[neighbors_max_length];
     int valid_unseen_neighbors_length = left_disjunction(valid_neighbors, valid_neighbors_length, seen, seen_length, valid_unseen_neighbors);
-    print_tiles("valid_neighbors", valid_neighbors, valid_neighbors_length);
-    print_tiles("valid_unseen_neighbors", valid_unseen_neighbors, valid_unseen_neighbors_length);
     pick_random_next_head(valid_unseen_neighbors, valid_unseen_neighbors_length);
-    print_tiles("valid_unseen_neighbors random pick", valid_unseen_neighbors, valid_unseen_neighbors_length);
     for (int v = 0; v < valid_unseen_neighbors_length; v++) {
       frontier_p++;
       frontier[frontier_p] = valid_unseen_neighbors[v];
       maze_path path;
       path.t1 = head;
       path.t2 = frontier[frontier_p];
-      paths[paths_length] = path;
-      maze_edges[path.t1.i + dimensions.height * path.t1.j][path.t2.i + dimensions.height * path.t2.j] = 1;
-      maze_edges[path.t2.i + dimensions.height * path.t2.j][path.t1.i + dimensions.height * path.t1.j] = 1;
-      paths_length++;
+
+
+      if (path.t1.i == path.t2.i && path.t2.j < path.t1.j) {
+        tiles[path.t1.j][path.t1.i] |= passage_up;
+        tiles[path.t2.j][path.t2.i] |= passage_down;
+      } else if (path.t1.i == path.t2.i && path.t1.j < path.t2.j) {
+        tiles[path.t1.j][path.t1.i] |= passage_down;
+        tiles[path.t2.j][path.t2.i] |= passage_up;
+      } else if (path.t1.j == path.t2.j && path.t2.i < path.t1.i) {
+        tiles[path.t1.j][path.t1.i] |= passage_left;
+        tiles[path.t2.j][path.t2.i] |= passage_right;
+      } else if (path.t1.j == path.t2.j && path.t1.i < path.t2.i) {
+        tiles[path.t1.j][path.t1.i] |= passage_right;
+        tiles[path.t2.j][path.t2.i] |= passage_left;
+        }
    }
-    print_tiles("updated frontier", frontier, frontier_p);
     until++;
   }
-  debugf("until = %d\n", until);
 
   /*
   printf("digraph G {\n");
@@ -316,29 +299,9 @@ int main(int argc, char **argv)
   printf("}\n");
   */
 
-  tile_type tiles[10][10];
-  for (int i = 0; i < 10; i++)
-    for (int j = 0; j < 10; j++)
-      tiles[j][i] = no_passages;
 
-  for (int p = 0; p < paths_length; p++) {
-    maze_path path = paths[p];
-    if (path.t1.i == path.t2.i && path.t2.j < path.t1.j) {
-      tiles[path.t1.j][path.t1.i] |= passage_up;
-      tiles[path.t2.j][path.t2.i] |= passage_down;
-    } else if (path.t1.i == path.t2.i && path.t1.j < path.t2.j) {
-      tiles[path.t1.j][path.t1.i] |= passage_down;
-      tiles[path.t2.j][path.t2.i] |= passage_up;
-    } else if (path.t1.j == path.t2.j && path.t2.i < path.t1.i) {
-      tiles[path.t1.j][path.t1.i] |= passage_left;
-      tiles[path.t2.j][path.t2.i] |= passage_right;
-    } else if (path.t1.j == path.t2.j && path.t1.i < path.t2.i) {
-      tiles[path.t1.j][path.t1.i] |= passage_right;
-      tiles[path.t2.j][path.t2.i] |= passage_left;
-    }
-  }
 
-  render_tiles(10, 10, tiles);
+  render_tiles(20, 30, tiles);
 
   return 0;
 }
