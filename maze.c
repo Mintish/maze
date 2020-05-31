@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 
 typedef struct {
   int i;
@@ -137,22 +136,17 @@ int are_tiles_equal(maze_tile tile1, maze_tile tile2)
   return result;
 }
 
-int left_disjunction(maze_tile left_tiles[], int left_length, maze_tile right_tiles[], int right_length, maze_tile disjunction[])
+int valid_neighbors(int neighbors_length, maze_tile neighbors[], int n, int m, tile_type tiles[n][m], maze_tile valid_neighbors[])
 {
-  int disjunction_length = 0;
-  for (int l = 0; l < left_length; l++) {
-    int found = 0;
-    for (int r = 0; r < right_length; r++) {
-      if (are_tiles_equal(left_tiles[l], right_tiles[r])) {
-        found = 1;
-      }
-    }
-    if (!found) {
-      disjunction[disjunction_length] = left_tiles[l];
-      disjunction_length++;
+  int valid_neighbors_length = 0;
+  for (int k = 0; k < neighbors_length; k++) {
+    maze_tile neighbor = neighbors[k];
+    if (tiles[neighbor.j][neighbor.i] == no_passages) {
+      valid_neighbors[valid_neighbors_length] = neighbor;
+      valid_neighbors_length++;
     }
   }
-  return disjunction_length;
+  return valid_neighbors_length;
 }
 
 void pick_random_next_head(maze_tile frontier[], int frontier_length)
@@ -166,7 +160,7 @@ void pick_random_next_head(maze_tile frontier[], int frontier_length)
   frontier[frontier_length - 1] = picked_tile;
 }
 
-void render_tiles(int height, int width, tile_type tiles[20][30])
+void render_tiles(int height, int width, tile_type tiles[height][width])
 {
   int character_height = height * 2 + 1;
   int character_width = width * 2 + 1;
@@ -214,7 +208,6 @@ void render_tiles(int height, int width, tile_type tiles[20][30])
   }
 }
 
-
 int main(int argc, char **argv)
 {
 
@@ -227,32 +220,29 @@ int main(int argc, char **argv)
 
   srand(seed);
 
+  const int height = 5;
+  const int width = 5;
+  const int maze_size = height * width;
   const int neighbors_max_length = 4;
+
   maze_tile neighbors[neighbors_max_length];
   maze_dimensions dimensions;
+  dimensions.height = height;
+  dimensions.width = width;
 
-  dimensions.height = 20;
-  dimensions.width = 30;
-
-  const int frontier_length = 500;
-  maze_tile frontier[frontier_length];
-  maze_tile seen[frontier_length];
-  maze_path paths[500];
-  int paths_length = 0;
+  maze_tile frontier[maze_size];
+  maze_tile seen[maze_size];
+  int seen_length = 0;
 
   maze_tile start_tile = get_random_perimeter_tile(dimensions);
 
   frontier[0] = start_tile;
   int frontier_p = 0;
-  int seen_length = 0;
 
-  tile_type tiles[20][30];
-  for (int i = 0; i < 30; i++)
-    for (int j = 0; j < 20; j++)
+  tile_type tiles[height][width];
+  for (int i = 0; i < width; i++)
+    for (int j = 0; j < height; j++)
       tiles[j][i] = no_passages;
-
-
- maze_tile valid_neighbors[neighbors_max_length];
 
   int until = 0;
   while (frontier_p >= 0 && until <= 50000) {
@@ -262,9 +252,9 @@ int main(int argc, char **argv)
     frontier_p--;
     int frontier_length = frontier_p + 1;
     int neighbors_length = get_neighbors(head, neighbors, dimensions);
-    int valid_neighbors_length = left_disjunction(neighbors, neighbors_length, frontier, frontier_length, valid_neighbors);
     maze_tile valid_unseen_neighbors[neighbors_max_length];
-    int valid_unseen_neighbors_length = left_disjunction(valid_neighbors, valid_neighbors_length, seen, seen_length, valid_unseen_neighbors);
+    int valid_unseen_neighbors_length = valid_neighbors(neighbors_length, neighbors, height, width, tiles, valid_unseen_neighbors);
+
     pick_random_next_head(valid_unseen_neighbors, valid_unseen_neighbors_length);
     for (int v = 0; v < valid_unseen_neighbors_length; v++) {
       frontier_p++;
@@ -272,7 +262,6 @@ int main(int argc, char **argv)
       maze_path path;
       path.t1 = head;
       path.t2 = frontier[frontier_p];
-
 
       if (path.t1.i == path.t2.i && path.t2.j < path.t1.j) {
         tiles[path.t1.j][path.t1.i] |= passage_up;
@@ -286,22 +275,12 @@ int main(int argc, char **argv)
       } else if (path.t1.j == path.t2.j && path.t1.i < path.t2.i) {
         tiles[path.t1.j][path.t1.i] |= passage_right;
         tiles[path.t2.j][path.t2.i] |= passage_left;
-        }
+      }
    }
     until++;
   }
 
-  /*
-  printf("digraph G {\n");
-  for (int p = 0; p < paths_length; p++) {
-    printf("\tmaze_tile_%d_%d -> maze_tile_%d_%d;\n", paths[p].t1.i, paths[p].t1.j, paths[p].t2.i, paths[p].t2.j);
-  }
-  printf("}\n");
-  */
-
-
-
-  render_tiles(20, 30, tiles);
+  render_tiles(height, width, tiles);
 
   return 0;
 }
