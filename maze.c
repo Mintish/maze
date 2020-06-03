@@ -11,11 +11,6 @@ typedef struct {
   int width;
 } maze_dimensions;
 
-typedef struct {
-  maze_tile t1;
-  maze_tile t2;
-} maze_path;
-
 typedef enum {
   no_passages = 0,
   passage_up = 1,
@@ -23,6 +18,15 @@ typedef enum {
   passage_down = 4,
   passage_left = 8,
 } tile_type;
+
+typedef enum {
+  explored = 1
+} flag;
+
+typedef struct {
+  tile_type type;
+  flag flag;
+} tile;
 
 int get_neighbors(maze_tile tile, maze_tile neighbors[], maze_dimensions dimensions)
 {
@@ -90,30 +94,26 @@ int get_neighbors(maze_tile tile, maze_tile neighbors[], maze_dimensions dimensi
 
 maze_tile get_perimeter_tile(int index, maze_dimensions dimensions)
 {
-  // Subtract `4` or we count the corners twice.
-  int perimeter = dimensions.width * 2 + dimensions.height * 2 - 4;
-  int cw_index = index % perimeter;
-  int side = (4 * cw_index) / perimeter;
+  // Account for corners
+  int width_d = dimensions.width - 1;
+  int height_d = dimensions.height - 1;
 
-  // Offsets also need to account for corners.
-  int offset;
+  int perimeter = width_d * 2 + height_d * 2;
+  int cw_index = index % perimeter;
+
   maze_tile perimeter_tile;
-  if (side == 0) { // top
-    offset = 0;
-    perimeter_tile.i = cw_index - offset;
+  if (cw_index < width_d) { // top
+    perimeter_tile.i = cw_index;
     perimeter_tile.j = 0;
-  } else if (side == 1) { // right
-    offset = dimensions.width - 1;
-    perimeter_tile.i = dimensions.width - 1;
-    perimeter_tile.j = cw_index - offset;
-  } else if (side == 2) { // bottom
-    offset = dimensions.width + dimensions.height - 2;
-    perimeter_tile.i = cw_index - offset;
-    perimeter_tile.j = dimensions.height - 1;
+  } else if (cw_index < width_d + height_d) { // right
+    perimeter_tile.i = width_d;
+    perimeter_tile.j = cw_index - width_d;
+  } else if (cw_index < width_d * 2 + height_d) { // bottom
+    perimeter_tile.i = cw_index - (width_d + height_d);
+    perimeter_tile.j = height_d;
   } else { // left
-    offset = dimensions.width * 2 + dimensions.height - 4;
     perimeter_tile.i = 0;
-    perimeter_tile.j = cw_index - offset;
+    perimeter_tile.j = cw_index - (width_d * 2 + height_d);
   }
 
   return perimeter_tile;
@@ -136,12 +136,12 @@ int are_tiles_equal(maze_tile tile1, maze_tile tile2)
   return result;
 }
 
-int valid_neighbors(int neighbors_length, maze_tile neighbors[], int n, int m, tile_type tiles[n][m], maze_tile valid_neighbors[])
+int valid_neighbors(int neighbors_length, maze_tile neighbors[], int n, int m, tile tiles[n][m], maze_tile valid_neighbors[])
 {
   int valid_neighbors_length = 0;
   for (int k = 0; k < neighbors_length; k++) {
     maze_tile neighbor = neighbors[k];
-    if (tiles[neighbor.j][neighbor.i] == no_passages) {
+    if (tiles[neighbor.j][neighbor.i].type == no_passages) {
       valid_neighbors[valid_neighbors_length] = neighbor;
       valid_neighbors_length++;
     }
@@ -160,7 +160,7 @@ void pick_random_next_head(maze_tile frontier[], int frontier_length)
   frontier[frontier_length - 1] = picked_tile;
 }
 
-void render_tiles(int height, int width, tile_type tiles[height][width])
+void render_tiles(int height, int width, tile tiles[height][width])
 {
   int character_height = height * 2 + 1;
   int character_width = width * 2 + 1;
@@ -177,25 +177,25 @@ void render_tiles(int height, int width, tile_type tiles[height][width])
       if (i % 2 == 0 && j % 2 == 0) {
         printf("#");
       } else if (i % 2 == 0) {
-        if (t_j_u < t_j && t_j_u > 0 && (tiles[t_j][t_i] & passage_up) == passage_up) {
+        if (t_j_u < t_j && t_j_u > 0 && (tiles[t_j][t_i].type & passage_up) == passage_up) {
           printf("i");
-        } else if (t_j_u < t_j && t_j > 0 && (tiles[t_j - 1][t_i] & passage_down) == passage_down) {
+        } else if (t_j_u < t_j && t_j > 0 && (tiles[t_j - 1][t_i].type & passage_down) == passage_down) {
           printf("j");
-        } else if (t_j < t_j_d && t_j_d < height && (tiles[t_j][t_i] & passage_down) == passage_down) {
+        } else if (t_j < t_j_d && t_j_d < height && (tiles[t_j][t_i].type & passage_down) == passage_down) {
           printf(".");
-        } else if (t_j < t_j_d && t_j + 1 < height && (tiles[t_j + 1][t_i] & passage_up) == passage_up) {
+        } else if (t_j < t_j_d && t_j + 1 < height && (tiles[t_j + 1][t_i].type & passage_up) == passage_up) {
           printf(".");
         } else {
           printf("#", t_j);
         }
       } else if (j % 2 == 0) {
-        if (t_i_l < t_i && t_i_l > 0 && (tiles[t_j][t_i] & passage_left) == passage_left) {
+        if (t_i_l < t_i && t_i_l > 0 && (tiles[t_j][t_i].type & passage_left) == passage_left) {
           printf("a");
-        } else if (t_i_l < t_i && t_i > 0 && (tiles[t_j][t_i - 1] & passage_right) == passage_right) {
+        } else if (t_i_l < t_i && t_i > 0 && (tiles[t_j][t_i - 1].type & passage_right) == passage_right) {
           printf("b");
-        } else if (t_i < t_i_r && t_i_r < width && (tiles[t_j][t_i] & passage_right) == passage_right) {
+        } else if (t_i < t_i_r && t_i_r < width && (tiles[t_j][t_i].type & passage_right) == passage_right) {
           printf(".");
-        } else if (t_i < t_i_r && t_i + 1 < width && (tiles[t_j][t_i + 1] & passage_left) == passage_left) {
+        } else if (t_i < t_i_r && t_i + 1 < width && (tiles[t_j][t_i + 1].type & passage_left) == passage_left) {
           printf(".");
         } else {
           printf("#");
@@ -220,8 +220,8 @@ int main(int argc, char **argv)
 
   srand(seed);
 
-  const int height = 5;
-  const int width = 5;
+  const int height = 15;
+  const int width = 25;
   const int maze_size = height * width;
   const int neighbors_max_length = 4;
 
@@ -231,56 +231,74 @@ int main(int argc, char **argv)
   dimensions.width = width;
 
   maze_tile frontier[maze_size];
-  maze_tile seen[maze_size];
-  int seen_length = 0;
 
   maze_tile start_tile = get_random_perimeter_tile(dimensions);
 
   frontier[0] = start_tile;
   int frontier_p = 0;
 
-  tile_type tiles[height][width];
-  for (int i = 0; i < width; i++)
-    for (int j = 0; j < height; j++)
-      tiles[j][i] = no_passages;
+  tile tiles[height][width];
+  for (int i = 0; i < width; i++) {
+    for (int j = 0; j < height; j++) {
+      tile t;
+      t.type = no_passages;
+      t.flag = 0;
+      tiles[j][i] = t;
+    }
+  }
 
   int until = 0;
   while (frontier_p >= 0 && until <= 50000) {
     maze_tile head = frontier[frontier_p];
-    seen[seen_length] = head;
-    seen_length++;
+
+    tiles[head.j][head.i].flag = explored;
     frontier_p--;
+
     int frontier_length = frontier_p + 1;
     int neighbors_length = get_neighbors(head, neighbors, dimensions);
     maze_tile valid_unseen_neighbors[neighbors_max_length];
     int valid_unseen_neighbors_length = valid_neighbors(neighbors_length, neighbors, height, width, tiles, valid_unseen_neighbors);
 
     pick_random_next_head(valid_unseen_neighbors, valid_unseen_neighbors_length);
-    for (int v = 0; v < valid_unseen_neighbors_length; v++) {
-      frontier_p++;
-      frontier[frontier_p] = valid_unseen_neighbors[v];
-      maze_path path;
-      path.t1 = head;
-      path.t2 = frontier[frontier_p];
 
-      if (path.t1.i == path.t2.i && path.t2.j < path.t1.j) {
-        tiles[path.t1.j][path.t1.i] |= passage_up;
-        tiles[path.t2.j][path.t2.i] |= passage_down;
-      } else if (path.t1.i == path.t2.i && path.t1.j < path.t2.j) {
-        tiles[path.t1.j][path.t1.i] |= passage_down;
-        tiles[path.t2.j][path.t2.i] |= passage_up;
-      } else if (path.t1.j == path.t2.j && path.t2.i < path.t1.i) {
-        tiles[path.t1.j][path.t1.i] |= passage_left;
-        tiles[path.t2.j][path.t2.i] |= passage_right;
-      } else if (path.t1.j == path.t2.j && path.t1.i < path.t2.i) {
-        tiles[path.t1.j][path.t1.i] |= passage_right;
-        tiles[path.t2.j][path.t2.i] |= passage_left;
+    for (int v = 0; v < valid_unseen_neighbors_length; v++) {
+      maze_tile t_h = head;
+      maze_tile t_c = valid_unseen_neighbors[v];
+      frontier_p++;
+      frontier[frontier_p] = t_c;
+
+      tiles[t_c.j][t_c.i].type = no_passages;
+
+      if (t_h.i == t_c.i && t_c.j < t_h.j) { // same column, current is higher up than head
+        tiles[t_h.j][t_h.i].type |= passage_up;
+        tiles[t_c.j][t_c.i].type |= passage_down;
+      } else if (t_h.i == t_c.i && t_h.j < t_c.j) { // same column, current is lower than head
+        tiles[t_h.j][t_h.i].type |= passage_down;
+        tiles[t_c.j][t_c.i].type |= passage_up;
+      } else if (t_h.j == t_c.j && t_c.i < t_h.i) { // same row, current is left of head
+        tiles[t_h.j][t_h.i].type |= passage_left;
+        tiles[t_c.j][t_c.i].type |= passage_right;
+      } else if (t_h.j == t_c.j && t_h.i < t_c.i) { // same row, current is right of head
+        tiles[t_h.j][t_h.i].type |= passage_right;
+        tiles[t_c.j][t_c.i].type |= passage_left;
       }
-   }
+    }
+
     until++;
   }
 
   render_tiles(height, width, tiles);
+
+  /*
+  printf("\n");
+
+  for (int j = 0; j < height; j++) {
+    for (int i = 0; i < width; i++) {
+      printf("%d\t", tiles[j][i].flag);
+    }
+    printf("\n");
+  }
+  */
 
   return 0;
 }
