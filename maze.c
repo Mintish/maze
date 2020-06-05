@@ -186,7 +186,7 @@ void render_tiles(int height, int width, tile tiles[height][width])
         } else if (t_j < t_j_d && t_j + 1 < height && (tiles[t_j + 1][t_i].type & passage_up) == passage_up) {
           printf(".");
         } else {
-          printf("#", t_j);
+          printf("#");
         }
       } else if (j % 2 == 0) {
         if (t_i_l < t_i && t_i_l > 0 && (tiles[t_j][t_i].type & passage_left) == passage_left) {
@@ -201,13 +201,12 @@ void render_tiles(int height, int width, tile tiles[height][width])
           printf("#");
         }
       } else {
-        printf(".", t_j);
+        printf(".");
       }
     }
     printf("\n");
   }
 }
-
 int main(int argc, char **argv)
 {
 
@@ -261,14 +260,22 @@ int main(int argc, char **argv)
 
     pick_random_next_head(valid_unseen_neighbors, valid_unseen_neighbors_length);
 
+    maze_tile t_h;
+    maze_tile t_c;
     for (int v = 0; v < valid_unseen_neighbors_length; v++) {
-      maze_tile t_h = head;
-      maze_tile t_c = valid_unseen_neighbors[v];
+      t_h = head;
+      t_c = valid_unseen_neighbors[v];
       frontier_p++;
-      frontier[frontier_p] = t_c;
+      if (v < valid_unseen_neighbors_length - 1) {
+        // Re-add the current head as the back-track point
+        frontier[frontier_p] = t_h;
+      } else {
+        frontier[frontier_p] = t_c;
+      }
+    }
 
-      tiles[t_c.j][t_c.i].type = no_passages;
-
+    // Link the current head with the new head
+    if (valid_unseen_neighbors_length > 0) {
       if (t_h.i == t_c.i && t_c.j < t_h.j) { // same column, current is higher up than head
         tiles[t_h.j][t_h.i].type |= passage_up;
         tiles[t_c.j][t_c.i].type |= passage_down;
@@ -286,19 +293,9 @@ int main(int argc, char **argv)
 
     until++;
   }
-
+  
   render_tiles(height, width, tiles);
 
-  /*
-  printf("\n");
-
-  for (int j = 0; j < height; j++) {
-    for (int i = 0; i < width; i++) {
-      printf("%d\t", tiles[j][i].flag);
-    }
-    printf("\n");
-  }
-  */
 
   return 0;
 }
