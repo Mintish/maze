@@ -2,7 +2,4 @@ all:
 	gcc -o maze maze.c
 
 debug:
-	gcc -o maze maze.c -D VERBOSE
-
-tiles:
-	gcc -o tiles tiles.c
+	gcc -g -o maze maze.c
