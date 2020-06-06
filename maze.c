@@ -125,17 +125,6 @@ maze_tile get_random_perimeter_tile(maze_dimensions dimensions)
   return get_perimeter_tile(cw_index, dimensions);
 }
 
-int are_tiles_equal(maze_tile tile1, maze_tile tile2)
-{
-  int result;
-  if (tile1.i == tile2.i && tile1.j == tile2.j) {
-    result = 1;
-  } else {
-    result = 0;
-  }
-  return result;
-}
-
 int valid_neighbors(int neighbors_length, maze_tile neighbors[], int n, int m, tile tiles[n][m], maze_tile valid_neighbors[])
 {
   int valid_neighbors_length = 0;
@@ -158,6 +147,81 @@ void pick_random_next_head(maze_tile frontier[], int frontier_length)
   maze_tile picked_tile = frontier[pick];
   frontier[pick] = frontier[frontier_length - 1];
   frontier[frontier_length - 1] = picked_tile;
+}
+
+void link_tiles(maze_tile head, maze_tile current, int height, int width, tile tiles[height][width])
+{
+  maze_tile t_h = head;
+  maze_tile t_c = current;
+
+  if (t_h.i == t_c.i && t_c.j < t_h.j) { // same column, current is higher up than head
+    tiles[t_h.j][t_h.i].type |= passage_up;
+    tiles[t_c.j][t_c.i].type |= passage_down;
+  } else if (t_h.i == t_c.i && t_h.j < t_c.j) { // same column, current is lower than head
+    tiles[t_h.j][t_h.i].type |= passage_down;
+    tiles[t_c.j][t_c.i].type |= passage_up;
+  } else if (t_h.j == t_c.j && t_c.i < t_h.i) { // same row, current is left of head
+    tiles[t_h.j][t_h.i].type |= passage_left;
+    tiles[t_c.j][t_c.i].type |= passage_right;
+  } else if (t_h.j == t_c.j && t_h.i < t_c.i) { // same row, current is right of head
+    tiles[t_h.j][t_h.i].type |= passage_right;
+    tiles[t_c.j][t_c.i].type |= passage_left;
+  }
+}
+
+void generate_maze(int height, int width, tile tiles[height][width])
+{
+  const int neighbors_max_length = 4;
+
+  maze_dimensions dimensions;
+  dimensions.height = height;
+  dimensions.width = width;
+
+  const int maze_size = height * width;
+
+  maze_tile frontier[maze_size];
+
+  maze_tile start_tile = get_random_perimeter_tile(dimensions);
+
+  frontier[0] = start_tile;
+  int frontier_p = 0;
+
+  int until = 0;
+  while (frontier_p >= 0 && until <= 50000) {
+    maze_tile head = frontier[frontier_p];
+
+    tiles[head.j][head.i].flag = explored;
+    frontier_p--;
+
+    int frontier_length = frontier_p + 1;
+    maze_tile neighbors[neighbors_max_length];
+    int neighbors_length = get_neighbors(head, neighbors, dimensions);
+    maze_tile valid_unseen_neighbors[neighbors_max_length];
+    int valid_unseen_neighbors_length = valid_neighbors(neighbors_length, neighbors, height, width, tiles, valid_unseen_neighbors);
+
+    pick_random_next_head(valid_unseen_neighbors, valid_unseen_neighbors_length);
+
+    maze_tile t_h;
+    maze_tile t_c;
+    for (int v = 0; v < valid_unseen_neighbors_length; v++) {
+      t_h = head;
+      t_c = valid_unseen_neighbors[v];
+      frontier_p++;
+      if (v < valid_unseen_neighbors_length - 1) {
+        // Re-add the current head as the back-track point
+        frontier[frontier_p] = t_h;
+      } else {
+        frontier[frontier_p] = t_c;
+      }
+    }
+
+    // Link the current head with the new head
+    if (valid_unseen_neighbors_length > 0) {
+      link_tiles(t_h, t_c, height, width, tiles);
+    }
+
+    until++;
+  }
 }
 
 void render_tiles(int height, int width, tile tiles[height][width])
@@ -207,6 +271,63 @@ void render_tiles(int height, int width, tile tiles[height][width])
     printf("\n");
   }
 }
+
+void render_tiles_small(int height, int width, tile tiles[height][width])
+{
+  for (int j = 0; j < height; j++) {
+    for (int i = 0; i < width; i++) {
+      char *c;
+      switch (tiles[j][i].type) {
+      case no_passages:
+        c = " ";
+        break;
+      case passage_up | passage_down | passage_left | passage_right:
+        c = "╬"; break;
+      case passage_up | passage_right | passage_down:
+        c = "╠"; break;
+      case passage_up | passage_left | passage_right:
+        c = "╩"; break;
+      case passage_right | passage_down | passage_left:
+        c = "╦"; break;
+      case passage_up | passage_down | passage_left:
+        c = "╣"; break;
+      case passage_up | passage_right:
+        c = "╚"; break;
+      case passage_up | passage_down:
+        c = "║"; break;
+      case passage_up | passage_left:
+        c = "╝"; break;
+      case passage_right | passage_down:
+        c = "╔"; break;
+      case passage_left | passage_right:
+        c = "═"; break;
+      case passage_left | passage_down:
+        c = "╗"; break;
+      case passage_up:
+        c = "╨";
+        break;
+      case passage_down:
+        c = "╥";
+        break;
+      case passage_left:
+        c = "╡";
+        break;
+      case passage_right:
+        c = "╞";
+        break;
+      default: {
+        char str[12];
+        sprintf(str, "%d", tiles[j][i].type); break;
+        c = str;
+      }
+      }
+      printf("%s", c);
+    }
+    printf("\n");
+  }
+}
+
+
 int main(int argc, char **argv)
 {
 
@@ -220,21 +341,7 @@ int main(int argc, char **argv)
   srand(seed);
 
   const int height = 15;
-  const int width = 25;
-  const int maze_size = height * width;
-  const int neighbors_max_length = 4;
-
-  maze_tile neighbors[neighbors_max_length];
-  maze_dimensions dimensions;
-  dimensions.height = height;
-  dimensions.width = width;
-
-  maze_tile frontier[maze_size];
-
-  maze_tile start_tile = get_random_perimeter_tile(dimensions);
-
-  frontier[0] = start_tile;
-  int frontier_p = 0;
+  const int width = 35;
 
   tile tiles[height][width];
   for (int i = 0; i < width; i++) {
@@ -246,54 +353,9 @@ int main(int argc, char **argv)
     }
   }
 
-  int until = 0;
-  while (frontier_p >= 0 && until <= 50000) {
-    maze_tile head = frontier[frontier_p];
+  generate_maze(height, width, tiles);
 
-    tiles[head.j][head.i].flag = explored;
-    frontier_p--;
-
-    int frontier_length = frontier_p + 1;
-    int neighbors_length = get_neighbors(head, neighbors, dimensions);
-    maze_tile valid_unseen_neighbors[neighbors_max_length];
-    int valid_unseen_neighbors_length = valid_neighbors(neighbors_length, neighbors, height, width, tiles, valid_unseen_neighbors);
-
-    pick_random_next_head(valid_unseen_neighbors, valid_unseen_neighbors_length);
-
-    maze_tile t_h;
-    maze_tile t_c;
-    for (int v = 0; v < valid_unseen_neighbors_length; v++) {
-      t_h = head;
-      t_c = valid_unseen_neighbors[v];
-      frontier_p++;
-      if (v < valid_unseen_neighbors_length - 1) {
-        // Re-add the current head as the back-track point
-        frontier[frontier_p] = t_h;
-      } else {
-        frontier[frontier_p] = t_c;
-      }
-    }
-
-    // Link the current head with the new head
-    if (valid_unseen_neighbors_length > 0) {
-      if (t_h.i == t_c.i && t_c.j < t_h.j) { // same column, current is higher up than head
-        tiles[t_h.j][t_h.i].type |= passage_up;
-        tiles[t_c.j][t_c.i].type |= passage_down;
-      } else if (t_h.i == t_c.i && t_h.j < t_c.j) { // same column, current is lower than head
-        tiles[t_h.j][t_h.i].type |= passage_down;
-        tiles[t_c.j][t_c.i].type |= passage_up;
-      } else if (t_h.j == t_c.j && t_c.i < t_h.i) { // same row, current is left of head
-        tiles[t_h.j][t_h.i].type |= passage_left;
-        tiles[t_c.j][t_c.i].type |= passage_right;
-      } else if (t_h.j == t_c.j && t_h.i < t_c.i) { // same row, current is right of head
-        tiles[t_h.j][t_h.i].type |= passage_right;
-        tiles[t_c.j][t_c.i].type |= passage_left;
-      }
-    }
-
-    until++;
-  }
-  
+  //render_tiles_small(height, width, tiles);
   render_tiles(height, width, tiles);
 
 
