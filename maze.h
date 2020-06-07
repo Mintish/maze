@@ -1,14 +1,10 @@
-#ifndef maze
-#define maze
+#ifndef grid_maze
+#define grid_maze
 
 typedef struct {
   int i;
   int j;
 } maze_tile;
-
-typedef enum {
-  explored = 1
-} flag;
 
 typedef enum {
   no_passages = 0,
@@ -20,9 +16,14 @@ typedef enum {
 
 typedef struct {
   tile_type type;
-  flag flag;
 } tile;
 
-void generate_maze(int height, int width, tile tiles[height][width]);
+typedef struct {
+  int height;
+  int width;
+  tile **tiles;
+} maze;
+
+void generate_maze(maze *maze);
 
 #endif

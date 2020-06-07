@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include "maze.h"
 
-void render_tiles(int height, int width, tile tiles[height][width]);
-void render_tiles_small(int height, int width, tile tiles[height][width]);
+void render_tiles(maze *maze);
+void render_tiles_small(maze *maze);
 
 int main(int argc, char **argv)
 {
@@ -20,28 +20,38 @@ int main(int argc, char **argv)
   const int height = 15;
   const int width = 35;
 
-  tile tiles[height][width];
-  for (int i = 0; i < width; i++) {
-    for (int j = 0; j < height; j++) {
+  tile **tiles;
+  tiles = malloc(sizeof(tile*) * height);
+  for (int j = 0; j < height; j++) {
+    tiles[j] = malloc(sizeof(tile) * width);
+    for (int i = 0; i < width; i++) {
       tile t;
       t.type = no_passages;
-      t.flag = 0;
       tiles[j][i] = t;
     }
   }
 
-  generate_maze(height, width, tiles);
+  maze *maze = malloc(sizeof(maze));
 
-  //render_tiles_small(height, width, tiles);
-  render_tiles(height, width, tiles);
+  maze->height = height;
+  maze->width = width;
+  maze->tiles = tiles;
+
+  generate_maze(maze);
+
+  render_tiles_small(maze);
+  render_tiles(maze);
 
   return 0;
 }
 
 
 
-void render_tiles(int height, int width, tile tiles[height][width])
+void render_tiles(maze *maze)
 {
+  tile **tiles = maze->tiles;
+  int height = maze->height;
+  int width = maze->width;
   int character_height = height * 2 + 1;
   int character_width = width * 2 + 1;
 
@@ -88,8 +98,11 @@ void render_tiles(int height, int width, tile tiles[height][width])
   }
 }
 
-void render_tiles_small(int height, int width, tile tiles[height][width])
+void render_tiles_small(maze *maze)
 {
+  tile **tiles = maze->tiles;
+  int height = maze->height;
+  int width = maze->width;
   for (int j = 0; j < height; j++) {
     for (int i = 0; i < width; i++) {
       char *c;

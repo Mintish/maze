@@ -6,8 +6,11 @@ typedef struct {
   int width;
 } maze_dimensions;
 
-int get_neighbors(maze_tile tile, maze_tile neighbors[], maze_dimensions dimensions)
+int get_neighbors(maze_tile tile, maze_tile neighbors[], maze *maze)
 {
+  maze_dimensions dimensions;
+  dimensions.height = maze->height;
+  dimensions.width = maze->width;
   maze_tile left;
   maze_tile right;
   maze_tile up;
@@ -97,14 +100,18 @@ maze_tile get_perimeter_tile(int index, maze_dimensions dimensions)
   return perimeter_tile;
 }
 
-maze_tile get_random_perimeter_tile(maze_dimensions dimensions)
+maze_tile get_random_perimeter_tile(maze *maze)
 {
+  maze_dimensions dimensions;
+  dimensions.height = maze->height;
+  dimensions.width = maze->width;
   int cw_index = rand();
   return get_perimeter_tile(cw_index, dimensions);
 }
 
-int valid_neighbors(int neighbors_length, maze_tile neighbors[], int n, int m, tile tiles[n][m], maze_tile valid_neighbors[])
+int get_valid_neighbors(int neighbors_length, maze_tile neighbors[], maze *maze, maze_tile valid_neighbors[])
 {
+  tile **tiles = maze->tiles;
   int valid_neighbors_length = 0;
   for (int k = 0; k < neighbors_length; k++) {
     maze_tile neighbor = neighbors[k];
@@ -116,7 +123,7 @@ int valid_neighbors(int neighbors_length, maze_tile neighbors[], int n, int m, t
   return valid_neighbors_length;
 }
 
-void pick_random_next_head(maze_tile frontier[], int frontier_length)
+void pick_next_head(int frontier_length, maze_tile frontier[])
 {
   if (frontier_length == 0) {
     return;
@@ -127,8 +134,11 @@ void pick_random_next_head(maze_tile frontier[], int frontier_length)
   frontier[frontier_length - 1] = picked_tile;
 }
 
-void link_tiles(maze_tile head, maze_tile current, int height, int width, tile tiles[height][width])
+void link_tiles(maze_tile head, maze_tile current, maze *maze)
 {
+  tile **tiles = maze->tiles;
+  int height = maze->height;
+  int width = maze->width;
   maze_tile t_h = head;
   maze_tile t_c = current;
 
@@ -147,19 +157,18 @@ void link_tiles(maze_tile head, maze_tile current, int height, int width, tile t
   }
 }
 
-void generate_maze(int height, int width, tile tiles[height][width])
+// The problem is that we've automatically baked the topology into the function signature.
+// This really wants to be a function that takes as input a list of tiles, where we don't care
+// about their organization.
+void generate_maze(maze *maze)
 {
   const int neighbors_max_length = 4;
 
-  maze_dimensions dimensions;
-  dimensions.height = height;
-  dimensions.width = width;
-
-  const int maze_size = height * width;
+  const int maze_size = 512;
 
   maze_tile frontier[maze_size];
 
-  maze_tile start_tile = get_random_perimeter_tile(dimensions);
+  maze_tile start_tile = get_random_perimeter_tile(maze);
 
   frontier[0] = start_tile;
   int frontier_p = 0;
@@ -167,17 +176,15 @@ void generate_maze(int height, int width, tile tiles[height][width])
   int until = 0;
   while (frontier_p >= 0 && until <= 50000) {
     maze_tile head = frontier[frontier_p];
-
-    tiles[head.j][head.i].flag = explored;
+    int frontier_length = frontier_p;
     frontier_p--;
 
-    int frontier_length = frontier_p + 1;
     maze_tile neighbors[neighbors_max_length];
-    int neighbors_length = get_neighbors(head, neighbors, dimensions);
+    int neighbors_length = get_neighbors(head, neighbors, maze);
     maze_tile valid_unseen_neighbors[neighbors_max_length];
-    int valid_unseen_neighbors_length = valid_neighbors(neighbors_length, neighbors, height, width, tiles, valid_unseen_neighbors);
+    int valid_unseen_neighbors_length = get_valid_neighbors(neighbors_length, neighbors, maze, valid_unseen_neighbors);
 
-    pick_random_next_head(valid_unseen_neighbors, valid_unseen_neighbors_length);
+    pick_next_head(valid_unseen_neighbors_length, valid_unseen_neighbors);
 
     maze_tile t_h;
     maze_tile t_c;
@@ -195,7 +202,7 @@ void generate_maze(int height, int width, tile tiles[height][width])
 
     // Link the current head with the new head
     if (valid_unseen_neighbors_length > 0) {
-      link_tiles(t_h, t_c, height, width, tiles);
+      link_tiles(t_h, t_c, maze);
     }
 
     until++;
