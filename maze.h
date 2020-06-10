@@ -24,6 +24,12 @@ typedef struct {
   tile **tiles;
 } maze;
 
-void generate_maze(maze *maze);
+maze_tile get_random_grid_perimeter_tile(maze *maze);
+
+int get_grid_neighbors(maze_tile tile, maze_tile neighbors[], maze* maze);
+
+void link_grid_tiles(maze_tile head, maze_tile current, maze *maze);
+
+void generate_maze(maze *maze_data, maze_tile(*get_start_tile)(maze*), int(*get_neighbors)(maze_tile, maze_tile[], maze*), void(*link_tiles)(maze_tile, maze_tile, maze*));
 
 #endif

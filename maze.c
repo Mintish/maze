@@ -90,7 +90,7 @@ int get_valid_neighbors(int neighbors_length, maze_tile neighbors[], maze *maze,
   return valid_neighbors_length;
 }
 
-int get_neighbors(maze_tile tile, maze_tile neighbors[], maze* maze)
+int get_grid_neighbors(maze_tile tile, maze_tile neighbors[], maze* maze)
 {
   maze_tile all_neighbors[MAX_NEIGHBORS];
   int all_neighbors_length = get_all_neighbors(tile, all_neighbors, maze);
@@ -125,7 +125,7 @@ maze_tile get_perimeter_tile(int index, maze_dimensions dimensions)
   return perimeter_tile;
 }
 
-maze_tile get_random_perimeter_tile(maze *maze)
+maze_tile get_random_grid_perimeter_tile(maze *maze)
 {
   maze_dimensions dimensions;
   dimensions.height = maze->height;
@@ -134,7 +134,7 @@ maze_tile get_random_perimeter_tile(maze *maze)
   return get_perimeter_tile(cw_index, dimensions);
 }
 
-void link_tiles(maze_tile head, maze_tile current, maze *maze)
+void link_grid_tiles(maze_tile head, maze_tile current, maze *maze)
 {
   tile **tiles = maze->tiles;
   int height = maze->height;
@@ -168,17 +168,11 @@ void pick_next_head(int frontier_length, maze_tile frontier[])
   frontier[frontier_length - 1] = picked_tile;
 }
 
-// The problem is that we've automatically baked the topology into the function signature.
-// This really wants to be a function that takes as input a list of tiles, where we don't care
-// about their organization.
-void generate_maze(maze *maze)
+void generate_maze(maze *maze_data, maze_tile(*get_start_tile)(maze*), int(*get_neighbors)(maze_tile, maze_tile[], maze*), void(*link_tiles)(maze_tile, maze_tile, maze*))
 {
   maze_tile frontier[MAX_FRONTIER];
-
-  maze_tile start_tile = get_random_perimeter_tile(maze);
-
-  frontier[0] = start_tile;
   int frontier_p = 0;
+  frontier[frontier_p] = (get_start_tile)(maze_data);
 
   int until = 0;
   while (frontier_p >= 0 && until <= 50000) {
@@ -187,7 +181,7 @@ void generate_maze(maze *maze)
     frontier_p--;
 
     maze_tile neighbors[MAX_NEIGHBORS];
-    int neighbors_length = get_neighbors(head, neighbors, maze);
+    int neighbors_length = (get_neighbors)(head, neighbors, maze_data);
     pick_next_head(neighbors_length, neighbors);
 
     maze_tile t_h;
@@ -206,7 +200,7 @@ void generate_maze(maze *maze)
 
     // Link the current head with the new head
     if (neighbors_length > 0) {
-      link_tiles(t_h, t_c, maze);
+      (link_tiles)(t_h, t_c, maze_data);
     }
 
     until++;

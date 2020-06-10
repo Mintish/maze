@@ -37,7 +37,7 @@ int main(int argc, char **argv)
   maze->width = width;
   maze->tiles = tiles;
 
-  generate_maze(maze);
+  generate_maze(maze, *get_random_grid_perimeter_tile, *get_grid_neighbors, *link_grid_tiles);
 
   render_tiles_small(maze);
   render_tiles(maze);
