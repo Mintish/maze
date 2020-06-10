@@ -1,12 +1,15 @@
 #include <stdlib.h>
 #include "maze.h"
 
+#define MAX_NEIGHBORS 8
+#define MAX_FRONTIER 512
+
 typedef struct {
   int height;
   int width;
 } maze_dimensions;
 
-int get_neighbors(maze_tile tile, maze_tile neighbors[], maze *maze)
+int get_all_neighbors(maze_tile tile, maze_tile neighbors[], maze *maze)
 {
   maze_dimensions dimensions;
   dimensions.height = maze->height;
@@ -73,6 +76,28 @@ int get_neighbors(maze_tile tile, maze_tile neighbors[], maze *maze)
   return neighbors_length;
 }
 
+int get_valid_neighbors(int neighbors_length, maze_tile neighbors[], maze *maze, maze_tile valid_neighbors[])
+{
+  tile **tiles = maze->tiles;
+  int valid_neighbors_length = 0;
+  for (int k = 0; k < neighbors_length; k++) {
+    maze_tile neighbor = neighbors[k];
+    if (tiles[neighbor.j][neighbor.i].type == no_passages) {
+      valid_neighbors[valid_neighbors_length] = neighbor;
+      valid_neighbors_length++;
+    }
+  }
+  return valid_neighbors_length;
+}
+
+int get_neighbors(maze_tile tile, maze_tile neighbors[], maze* maze)
+{
+  maze_tile all_neighbors[MAX_NEIGHBORS];
+  int all_neighbors_length = get_all_neighbors(tile, all_neighbors, maze);
+  int valid_neighbors_length = get_valid_neighbors(all_neighbors_length, all_neighbors, maze, neighbors); 
+  return valid_neighbors_length;
+}
+
 maze_tile get_perimeter_tile(int index, maze_dimensions dimensions)
 {
   // Account for corners
@@ -107,20 +132,6 @@ maze_tile get_random_perimeter_tile(maze *maze)
   dimensions.width = maze->width;
   int cw_index = rand();
   return get_perimeter_tile(cw_index, dimensions);
-}
-
-int get_valid_neighbors(int neighbors_length, maze_tile neighbors[], maze *maze, maze_tile valid_neighbors[])
-{
-  tile **tiles = maze->tiles;
-  int valid_neighbors_length = 0;
-  for (int k = 0; k < neighbors_length; k++) {
-    maze_tile neighbor = neighbors[k];
-    if (tiles[neighbor.j][neighbor.i].type == no_passages) {
-      valid_neighbors[valid_neighbors_length] = neighbor;
-      valid_neighbors_length++;
-    }
-  }
-  return valid_neighbors_length;
 }
 
 void pick_next_head(int frontier_length, maze_tile frontier[])
@@ -162,11 +173,7 @@ void link_tiles(maze_tile head, maze_tile current, maze *maze)
 // about their organization.
 void generate_maze(maze *maze)
 {
-  const int neighbors_max_length = 4;
-
-  const int maze_size = 512;
-
-  maze_tile frontier[maze_size];
+  maze_tile frontier[MAX_FRONTIER];
 
   maze_tile start_tile = get_random_perimeter_tile(maze);
 
@@ -179,20 +186,17 @@ void generate_maze(maze *maze)
     int frontier_length = frontier_p;
     frontier_p--;
 
-    maze_tile neighbors[neighbors_max_length];
+    maze_tile neighbors[MAX_NEIGHBORS];
     int neighbors_length = get_neighbors(head, neighbors, maze);
-    maze_tile valid_unseen_neighbors[neighbors_max_length];
-    int valid_unseen_neighbors_length = get_valid_neighbors(neighbors_length, neighbors, maze, valid_unseen_neighbors);
-
-    pick_next_head(valid_unseen_neighbors_length, valid_unseen_neighbors);
+    pick_next_head(neighbors_length, neighbors);
 
     maze_tile t_h;
     maze_tile t_c;
-    for (int v = 0; v < valid_unseen_neighbors_length; v++) {
+    for (int v = 0; v < neighbors_length; v++) {
       t_h = head;
-      t_c = valid_unseen_neighbors[v];
+      t_c = neighbors[v];
       frontier_p++;
-      if (v < valid_unseen_neighbors_length - 1) {
+      if (v < neighbors_length - 1) {
         // Re-add the current head as the back-track point
         frontier[frontier_p] = t_h;
       } else {
@@ -201,7 +205,7 @@ void generate_maze(maze *maze)
     }
 
     // Link the current head with the new head
-    if (valid_unseen_neighbors_length > 0) {
+    if (neighbors_length > 0) {
       link_tiles(t_h, t_c, maze);
     }
 
