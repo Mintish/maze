@@ -134,17 +134,6 @@ maze_tile get_random_perimeter_tile(maze *maze)
   return get_perimeter_tile(cw_index, dimensions);
 }
 
-void pick_next_head(int frontier_length, maze_tile frontier[])
-{
-  if (frontier_length == 0) {
-    return;
-  }
-  int pick = rand() % frontier_length;
-  maze_tile picked_tile = frontier[pick];
-  frontier[pick] = frontier[frontier_length - 1];
-  frontier[frontier_length - 1] = picked_tile;
-}
-
 void link_tiles(maze_tile head, maze_tile current, maze *maze)
 {
   tile **tiles = maze->tiles;
@@ -166,6 +155,17 @@ void link_tiles(maze_tile head, maze_tile current, maze *maze)
     tiles[t_h.j][t_h.i].type |= passage_right;
     tiles[t_c.j][t_c.i].type |= passage_left;
   }
+}
+
+void pick_next_head(int frontier_length, maze_tile frontier[])
+{
+  if (frontier_length == 0) {
+    return;
+  }
+  int pick = rand() % frontier_length;
+  maze_tile picked_tile = frontier[pick];
+  frontier[pick] = frontier[frontier_length - 1];
+  frontier[frontier_length - 1] = picked_tile;
 }
 
 // The problem is that we've automatically baked the topology into the function signature.
