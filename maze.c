@@ -9,7 +9,7 @@ typedef struct {
   int width;
 } maze_dimensions;
 
-int get_all_neighbors(maze_tile tile, maze_tile neighbors[], maze *maze)
+int get_all_grid_neighbors(maze_tile tile, maze_tile neighbors[], maze *maze)
 {
   maze_dimensions dimensions;
   dimensions.height = maze->height;
@@ -76,7 +76,7 @@ int get_all_neighbors(maze_tile tile, maze_tile neighbors[], maze *maze)
   return neighbors_length;
 }
 
-int get_valid_neighbors(int neighbors_length, maze_tile neighbors[], maze *maze, maze_tile valid_neighbors[])
+int get_valid_grid_neighbors(int neighbors_length, maze_tile neighbors[], maze *maze, maze_tile valid_neighbors[])
 {
   tile **tiles = maze->tiles;
   int valid_neighbors_length = 0;
@@ -93,12 +93,12 @@ int get_valid_neighbors(int neighbors_length, maze_tile neighbors[], maze *maze,
 int get_grid_neighbors(maze_tile tile, maze_tile neighbors[], maze* maze)
 {
   maze_tile all_neighbors[MAX_NEIGHBORS];
-  int all_neighbors_length = get_all_neighbors(tile, all_neighbors, maze);
-  int valid_neighbors_length = get_valid_neighbors(all_neighbors_length, all_neighbors, maze, neighbors); 
+  int all_neighbors_length = get_all_grid_neighbors(tile, all_neighbors, maze);
+  int valid_neighbors_length = get_valid_grid_neighbors(all_neighbors_length, all_neighbors, maze, neighbors); 
   return valid_neighbors_length;
 }
 
-maze_tile get_perimeter_tile(int index, maze_dimensions dimensions)
+maze_tile get_grid_perimeter_tile(int index, maze_dimensions dimensions)
 {
   // Account for corners
   int width_d = dimensions.width - 1;
@@ -131,7 +131,7 @@ maze_tile get_random_grid_perimeter_tile(maze *maze)
   dimensions.height = maze->height;
   dimensions.width = maze->width;
   int cw_index = rand();
-  return get_perimeter_tile(cw_index, dimensions);
+  return get_grid_perimeter_tile(cw_index, dimensions);
 }
 
 void link_grid_tiles(maze_tile head, maze_tile current, maze *maze)
