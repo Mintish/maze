@@ -9,24 +9,18 @@ typedef struct {
   int width;
 } maze_dimensions;
 
-int get_all_grid_neighbors(maze_tile tile, maze_tile neighbors[], maze *maze)
+int get_all_grid_neighbors(maze_tile_t *maze_tile, maze_tile_t *neighbors[], grid_maze_data_t *maze)
 {
   maze_dimensions dimensions;
   dimensions.height = maze->height;
   dimensions.width = maze->width;
-  maze_tile left;
-  maze_tile right;
-  maze_tile up;
-  maze_tile down;
+  maze_tile_t **tiles = maze->tiles;
+  grid_maze_tile_t tile = *((grid_maze_tile_t*)maze_tile->tile_data);
 
-  left.i = tile.i - 1;
-  left.j = tile.j;
-  right.i = tile.i + 1;
-  right.j = tile.j;
-  up.i = tile.i;
-  up.j = tile.j - 1;
-  down.i = tile.i;
-  down.j = tile.j + 1;
+  maze_tile_t *left = &tiles[tile.j][tile.i - 1];
+  maze_tile_t *right = &tiles[tile.j][tile.i + 1];
+  maze_tile_t *up = &tiles[tile.j - 1][tile.i];
+  maze_tile_t *down = &tiles[tile.j + 1][tile.i];
 
   int neighbors_length;
   if (tile.i == 0 && tile.j == 0) { // top left
@@ -76,30 +70,34 @@ int get_all_grid_neighbors(maze_tile tile, maze_tile neighbors[], maze *maze)
   return neighbors_length;
 }
 
-int get_valid_grid_neighbors(int neighbors_length, maze_tile neighbors[], maze *maze, maze_tile valid_neighbors[])
+int get_valid_grid_neighbors(int neighbors_length, maze_tile_t *neighbors[], maze_tile_t *valid_neighbors[])
 {
-  tile **tiles = maze->tiles;
   int valid_neighbors_length = 0;
   for (int k = 0; k < neighbors_length; k++) {
-    maze_tile neighbor = neighbors[k];
-    if (tiles[neighbor.j][neighbor.i].type == no_passages) {
-      valid_neighbors[valid_neighbors_length] = neighbor;
+    grid_maze_tile_t *neighbor = neighbors[k]->tile_data;
+    if (neighbor->type == no_passages) {
+      valid_neighbors[valid_neighbors_length] = neighbors[k];
       valid_neighbors_length++;
     }
   }
   return valid_neighbors_length;
 }
 
-int get_grid_neighbors(maze_tile tile, maze_tile neighbors[], maze* maze)
+int get_grid_neighbors(maze_tile_t *tile, maze_tile_t *neighbors[], maze_t* maze)
 {
-  maze_tile all_neighbors[MAX_NEIGHBORS];
-  int all_neighbors_length = get_all_grid_neighbors(tile, all_neighbors, maze);
-  int valid_neighbors_length = get_valid_grid_neighbors(all_neighbors_length, all_neighbors, maze, neighbors); 
+  maze_tile_t *all_neighbors[MAX_NEIGHBORS];
+  grid_maze_data_t *grid_maze = maze->maze_data;
+  int all_neighbors_length = get_all_grid_neighbors(tile, all_neighbors, grid_maze);
+  int valid_neighbors_length = get_valid_grid_neighbors(all_neighbors_length, all_neighbors, neighbors); 
   return valid_neighbors_length;
 }
 
-maze_tile get_grid_perimeter_tile(int index, maze_dimensions dimensions)
+maze_tile_t* get_grid_perimeter_tile(int index, grid_maze_data_t *maze)
 {
+  maze_dimensions dimensions;
+  dimensions.height = maze->height;
+  dimensions.width = maze->width;
+
   // Account for corners
   int width_d = dimensions.width - 1;
   int height_d = dimensions.height - 1;
@@ -107,7 +105,7 @@ maze_tile get_grid_perimeter_tile(int index, maze_dimensions dimensions)
   int perimeter = width_d * 2 + height_d * 2;
   int cw_index = index % perimeter;
 
-  maze_tile perimeter_tile;
+  grid_maze_tile_t perimeter_tile;
   if (cw_index < width_d) { // top
     perimeter_tile.i = cw_index;
     perimeter_tile.j = 0;
@@ -122,70 +120,73 @@ maze_tile get_grid_perimeter_tile(int index, maze_dimensions dimensions)
     perimeter_tile.j = cw_index - (width_d * 2 + height_d);
   }
 
-  return perimeter_tile;
+  maze_tile_t *tile = &maze->tiles[perimeter_tile.j][perimeter_tile.i];
+
+  return tile;
 }
 
-maze_tile get_random_grid_perimeter_tile(maze *maze)
+maze_tile_t* get_random_grid_perimeter_tile(maze_t *maze)
 {
-  maze_dimensions dimensions;
-  dimensions.height = maze->height;
-  dimensions.width = maze->width;
+  grid_maze_data_t *grid_maze = maze->maze_data;
   int cw_index = rand();
-  return get_grid_perimeter_tile(cw_index, dimensions);
+  return get_grid_perimeter_tile(cw_index, grid_maze);
 }
 
-void link_grid_tiles(maze_tile head, maze_tile current, maze *maze)
+void link_grid_tiles(maze_tile_t *head, maze_tile_t *current, maze_t *maze)
 {
-  tile **tiles = maze->tiles;
-  int height = maze->height;
-  int width = maze->width;
-  maze_tile t_h = head;
-  maze_tile t_c = current;
+  grid_maze_data_t *grid_maze = maze->maze_data;
+  int height = grid_maze->height;
+  int width = grid_maze->width;
+  grid_maze_tile_t *t_h = head->tile_data;
+  grid_maze_tile_t *t_c = current->tile_data;
 
-  if (t_h.i == t_c.i && t_c.j < t_h.j) { // same column, current is higher up than head
-    tiles[t_h.j][t_h.i].type |= passage_up;
-    tiles[t_c.j][t_c.i].type |= passage_down;
-  } else if (t_h.i == t_c.i && t_h.j < t_c.j) { // same column, current is lower than head
-    tiles[t_h.j][t_h.i].type |= passage_down;
-    tiles[t_c.j][t_c.i].type |= passage_up;
-  } else if (t_h.j == t_c.j && t_c.i < t_h.i) { // same row, current is left of head
-    tiles[t_h.j][t_h.i].type |= passage_left;
-    tiles[t_c.j][t_c.i].type |= passage_right;
-  } else if (t_h.j == t_c.j && t_h.i < t_c.i) { // same row, current is right of head
-    tiles[t_h.j][t_h.i].type |= passage_right;
-    tiles[t_c.j][t_c.i].type |= passage_left;
+  if (t_h->i == t_c->i && t_c->j < t_h->j) { // same column, current is higher up than head
+    t_h->type |= passage_up;
+    t_c->type |= passage_down;
+  } else if (t_h->i == t_c->i && t_h->j < t_c->j) { // same column, current is lower than head
+    t_h->type |= passage_down;
+    t_c->type |= passage_up;
+  } else if (t_h->j == t_c->j && t_c->i < t_h->i) { // same row, current is left of head
+    t_h->type |= passage_left;
+    t_c->type |= passage_right;
+  } else if (t_h->j == t_c->j && t_h->i < t_c->i) { // same row, current is right of head
+    t_h->type |= passage_right;
+    t_c->type |= passage_left;
   }
 }
 
-void pick_next_head(int frontier_length, maze_tile frontier[])
+void pick_next_head(int frontier_length, maze_tile_t *frontier[])
 {
   if (frontier_length == 0) {
     return;
   }
   int pick = rand() % frontier_length;
-  maze_tile picked_tile = frontier[pick];
+  maze_tile_t *picked_tile = frontier[pick];
   frontier[pick] = frontier[frontier_length - 1];
   frontier[frontier_length - 1] = picked_tile;
 }
 
-void generate_maze(maze *maze_data, maze_tile(*get_start_tile)(maze*), int(*get_neighbors)(maze_tile, maze_tile[], maze*), void(*link_tiles)(maze_tile, maze_tile, maze*))
+void generate_maze(maze_t *maze,
+                   maze_tile_t*(*get_start_tile)(maze_t*),
+                   int(*get_neighbors)(maze_tile_t*, maze_tile_t*[], maze_t*),
+                   void(*link_tiles)(maze_tile_t*, maze_tile_t*, maze_t*))
 {
-  maze_tile frontier[MAX_FRONTIER];
+  maze_tile_t *frontier[MAX_FRONTIER];
   int frontier_p = 0;
-  frontier[frontier_p] = (get_start_tile)(maze_data);
+  frontier[frontier_p] = (get_start_tile)(maze);
 
   int until = 0;
   while (frontier_p >= 0 && until <= 50000) {
-    maze_tile head = frontier[frontier_p];
+    maze_tile_t *head = frontier[frontier_p];
     int frontier_length = frontier_p;
     frontier_p--;
 
-    maze_tile neighbors[MAX_NEIGHBORS];
-    int neighbors_length = (get_neighbors)(head, neighbors, maze_data);
+    maze_tile_t *neighbors[MAX_NEIGHBORS];
+    int neighbors_length = (get_neighbors)(head, neighbors, maze);
     pick_next_head(neighbors_length, neighbors);
 
-    maze_tile t_h;
-    maze_tile t_c;
+    maze_tile_t *t_h;
+    maze_tile_t *t_c;
     for (int v = 0; v < neighbors_length; v++) {
       t_h = head;
       t_c = neighbors[v];
@@ -200,7 +201,7 @@ void generate_maze(maze *maze_data, maze_tile(*get_start_tile)(maze*), int(*get_
 
     // Link the current head with the new head
     if (neighbors_length > 0) {
-      (link_tiles)(t_h, t_c, maze_data);
+      (link_tiles)(t_h, t_c, maze);
     }
 
     until++;

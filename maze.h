@@ -1,10 +1,5 @@
-#ifndef grid_maze
-#define grid_maze
-
-typedef struct {
-  int i;
-  int j;
-} maze_tile;
+#ifndef GRID_MAZE
+#define GRID_MAZE
 
 typedef enum {
   no_passages = 0,
@@ -12,24 +7,37 @@ typedef enum {
   passage_right = 2,
   passage_down = 4,
   passage_left = 8,
-} tile_type;
+} grid_tile_type;
 
 typedef struct {
-  tile_type type;
-} tile;
+  int i;
+  int j;
+  grid_tile_type type;
+} grid_maze_tile_t;
+
+typedef struct {
+  void *maze_data;
+} maze_t;
+
+typedef struct {
+  void *tile_data;
+} maze_tile_t;
 
 typedef struct {
   int height;
   int width;
-  tile **tiles;
-} maze;
+  maze_tile_t **tiles;
+} grid_maze_data_t;
 
-maze_tile get_random_grid_perimeter_tile(maze *maze);
+maze_tile_t* get_random_grid_perimeter_tile(maze_t *maze);
 
-int get_grid_neighbors(maze_tile tile, maze_tile neighbors[], maze* maze);
+int get_grid_neighbors(maze_tile_t *tile, maze_tile_t *neighbors[], maze_t* maze);
 
-void link_grid_tiles(maze_tile head, maze_tile current, maze *maze);
+void link_grid_tiles(maze_tile_t *head, maze_tile_t *current, maze_t *maze);
 
-void generate_maze(maze *maze_data, maze_tile(*get_start_tile)(maze*), int(*get_neighbors)(maze_tile, maze_tile[], maze*), void(*link_tiles)(maze_tile, maze_tile, maze*));
+void generate_maze(maze_t *maze,
+                   maze_tile_t*(*get_start_tile)(maze_t*),
+                   int(*get_neighbors)(maze_tile_t*, maze_tile_t*[], maze_t*),
+                   void(*link_tiles)(maze_tile_t*, maze_tile_t*, maze_t*));
 
 #endif

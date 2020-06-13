@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include "maze.h"
 
-void render_tiles(maze *maze);
-void render_tiles_small(maze *maze);
+void render_tiles(maze_t *maze);
+void render_tiles_small(maze_t *maze);
 
 int main(int argc, char **argv)
 {
@@ -20,22 +20,26 @@ int main(int argc, char **argv)
   const int height = 15;
   const int width = 35;
 
-  tile **tiles;
-  tiles = malloc(sizeof(tile*) * height);
+  maze_tile_t **tiles;
+  tiles = malloc(sizeof(maze_tile_t*) * height);
   for (int j = 0; j < height; j++) {
-    tiles[j] = malloc(sizeof(tile) * width);
+    tiles[j] = malloc(sizeof(maze_tile_t) * width);
     for (int i = 0; i < width; i++) {
-      tile t;
-      t.type = no_passages;
-      tiles[j][i] = t;
+      grid_maze_tile_t *t = malloc(sizeof(grid_maze_tile_t));
+      t->i = i;
+      t->j = j;
+      t->type = no_passages;
+      tiles[j][i].tile_data = t;
     }
   }
 
-  maze *maze = malloc(sizeof(maze));
+  grid_maze_data_t *maze_data = malloc(sizeof(grid_maze_data_t));
+  maze_data->height = height;
+  maze_data->width = width;
+  maze_data->tiles = tiles;
 
-  maze->height = height;
-  maze->width = width;
-  maze->tiles = tiles;
+  maze_t *maze = malloc(sizeof(maze_t));
+  maze->maze_data = maze_data;
 
   generate_maze(maze, *get_random_grid_perimeter_tile, *get_grid_neighbors, *link_grid_tiles);
 
@@ -45,13 +49,12 @@ int main(int argc, char **argv)
   return 0;
 }
 
-
-
-void render_tiles(maze *maze)
+void render_tiles(maze_t *maze)
 {
-  tile **tiles = maze->tiles;
-  int height = maze->height;
-  int width = maze->width;
+  grid_maze_data_t *grid_maze = maze->maze_data;
+  maze_tile_t **tiles = grid_maze->tiles;
+  int height = grid_maze->height;
+  int width = grid_maze->width;
   int character_height = height * 2 + 1;
   int character_width = width * 2 + 1;
 
@@ -67,25 +70,17 @@ void render_tiles(maze *maze)
       if (i % 2 == 0 && j % 2 == 0) {
         printf("#");
       } else if (i % 2 == 0) {
-        if (t_j_u < t_j && t_j_u > 0 && (tiles[t_j][t_i].type & passage_up) == passage_up) {
-          printf("i");
-        } else if (t_j_u < t_j && t_j > 0 && (tiles[t_j - 1][t_i].type & passage_down) == passage_down) {
-          printf("j");
-        } else if (t_j < t_j_d && t_j_d < height && (tiles[t_j][t_i].type & passage_down) == passage_down) {
+        if (t_j < t_j_d && t_j_d < height && (((grid_maze_tile_t*)tiles[t_j][t_i].tile_data)->type & passage_down) == passage_down) {
           printf(".");
-        } else if (t_j < t_j_d && t_j + 1 < height && (tiles[t_j + 1][t_i].type & passage_up) == passage_up) {
+        } else if (t_j < t_j_d && t_j + 1 < height && (((grid_maze_tile_t*)tiles[t_j + 1][t_i].tile_data)->type & passage_up) == passage_up) {
           printf(".");
         } else {
           printf("#");
         }
       } else if (j % 2 == 0) {
-        if (t_i_l < t_i && t_i_l > 0 && (tiles[t_j][t_i].type & passage_left) == passage_left) {
-          printf("a");
-        } else if (t_i_l < t_i && t_i > 0 && (tiles[t_j][t_i - 1].type & passage_right) == passage_right) {
-          printf("b");
-        } else if (t_i < t_i_r && t_i_r < width && (tiles[t_j][t_i].type & passage_right) == passage_right) {
+        if (t_i < t_i_r && t_i_r < width && (((grid_maze_tile_t*)tiles[t_j][t_i].tile_data)->type & passage_right) == passage_right) {
           printf(".");
-        } else if (t_i < t_i_r && t_i + 1 < width && (tiles[t_j][t_i + 1].type & passage_left) == passage_left) {
+        } else if (t_i < t_i_r && t_i + 1 < width && (((grid_maze_tile_t*)tiles[t_j][t_i + 1].tile_data)->type & passage_left) == passage_left) {
           printf(".");
         } else {
           printf("#");
@@ -98,15 +93,18 @@ void render_tiles(maze *maze)
   }
 }
 
-void render_tiles_small(maze *maze)
+void render_tiles_small(maze_t *maze)
 {
-  tile **tiles = maze->tiles;
-  int height = maze->height;
-  int width = maze->width;
+
+  grid_maze_data_t *grid_maze = maze->maze_data;
+  maze_tile_t **tiles = grid_maze->tiles;
+  int height = grid_maze->height;
+  int width = grid_maze->width;
   for (int j = 0; j < height; j++) {
     for (int i = 0; i < width; i++) {
       char *c;
-      switch (tiles[j][i].type) {
+      grid_maze_tile_t *tile = tiles[j][i].tile_data;
+      switch (tile->type) {
       case no_passages:
         c = " ";
         break;
@@ -146,7 +144,7 @@ void render_tiles_small(maze *maze)
         break;
       default: {
         char str[12];
-        sprintf(str, "%d", tiles[j][i].type); break;
+        sprintf(str, "%d", tile->type); break;
         c = str;
       }
       }
