@@ -1,8 +1,5 @@
 #include <stdlib.h>
-#include "maze.h"
-
-#define MAX_NEIGHBORS 8
-#define MAX_FRONTIER 512
+#include "grid_maze_topology.h"
 
 typedef struct {
   int height;
@@ -17,50 +14,69 @@ int get_all_grid_neighbors(maze_tile_t *maze_tile, maze_tile_t *neighbors[], gri
   maze_tile_t **tiles = maze->tiles;
   grid_maze_tile_t tile = *((grid_maze_tile_t*)maze_tile->tile_data);
 
-  maze_tile_t *left = &tiles[tile.j][tile.i - 1];
-  maze_tile_t *right = &tiles[tile.j][tile.i + 1];
-  maze_tile_t *up = &tiles[tile.j - 1][tile.i];
-  maze_tile_t *down = &tiles[tile.j + 1][tile.i];
-
   int neighbors_length;
   if (tile.i == 0 && tile.j == 0) { // top left
     neighbors_length = 2;
+    maze_tile_t *right = &tiles[tile.j][tile.i + 1];
+    maze_tile_t *down = &tiles[tile.j + 1][tile.i];
     neighbors[0] = right;
     neighbors[1] = down;
   } else if (tile.i == dimensions.width - 1 && tile.j == 0) { // top right
     neighbors_length = 2;
+    maze_tile_t *down = &tiles[tile.j + 1][tile.i];
+    maze_tile_t *left = &tiles[tile.j][tile.i - 1];
     neighbors[0] = down;
     neighbors[1] = left;
   } else if (tile.i == dimensions.width - 1 && tile.j == dimensions.height - 1) { // bottom right
     neighbors_length = 2;
+    maze_tile_t *up = &tiles[tile.j - 1][tile.i];
+    maze_tile_t *left = &tiles[tile.j][tile.i - 1];
     neighbors[0] = up;
     neighbors[1] = left;
   } else if (tile.i == 0 && tile.j == dimensions.height - 1) { // bottom left
     neighbors_length = 2;
+    maze_tile_t *up = &tiles[tile.j - 1][tile.i];
+    maze_tile_t *right = &tiles[tile.j][tile.i + 1];
     neighbors[0] = up;
     neighbors[1] = right;
   } else if (tile.i == 0) { // left
     neighbors_length = 3;
+    maze_tile_t *up = &tiles[tile.j - 1][tile.i];
+    maze_tile_t *right = &tiles[tile.j][tile.i + 1];
+    maze_tile_t *down = &tiles[tile.j + 1][tile.i];
     neighbors[0] = up;
     neighbors[1] = right;
     neighbors[2] = down;
   } else if (tile.i == dimensions.width - 1) { // right
     neighbors_length = 3;
+    maze_tile_t *up = &tiles[tile.j - 1][tile.i];
+    maze_tile_t *down = &tiles[tile.j + 1][tile.i];
+    maze_tile_t *left = &tiles[tile.j][tile.i - 1];
     neighbors[0] = up;
     neighbors[1] = down;
     neighbors[2] = left;
   } else if (tile.j == 0) { // top
     neighbors_length = 3;
+    maze_tile_t *right = &tiles[tile.j][tile.i + 1];
+    maze_tile_t *down = &tiles[tile.j + 1][tile.i];
+    maze_tile_t *left = &tiles[tile.j][tile.i - 1];
     neighbors[0] = right;
     neighbors[1] = down;
     neighbors[2] = left;
   } else if (tile.j == dimensions.height - 1) { // bottom
     neighbors_length = 3;
+    maze_tile_t *up = &tiles[tile.j - 1][tile.i];
+    maze_tile_t *right = &tiles[tile.j][tile.i + 1];
+    maze_tile_t *left = &tiles[tile.j][tile.i - 1];
     neighbors[0] = up;
     neighbors[1] = right;
     neighbors[2] = left;
   } else { // interior
     neighbors_length = 4;
+    maze_tile_t *up = &tiles[tile.j - 1][tile.i];
+    maze_tile_t *right = &tiles[tile.j][tile.i + 1];
+    maze_tile_t *down = &tiles[tile.j + 1][tile.i];
+    maze_tile_t *left = &tiles[tile.j][tile.i - 1];
     neighbors[0] = up;
     neighbors[1] = right;
     neighbors[2] = down;
@@ -155,55 +171,3 @@ void link_grid_tiles(maze_tile_t *head, maze_tile_t *current, maze_t *maze)
   }
 }
 
-void pick_next_head(int frontier_length, maze_tile_t *frontier[])
-{
-  if (frontier_length == 0) {
-    return;
-  }
-  int pick = rand() % frontier_length;
-  maze_tile_t *picked_tile = frontier[pick];
-  frontier[pick] = frontier[frontier_length - 1];
-  frontier[frontier_length - 1] = picked_tile;
-}
-
-void generate_maze(maze_t *maze,
-                   maze_tile_t*(*get_start_tile)(maze_t*),
-                   int(*get_neighbors)(maze_tile_t*, maze_tile_t*[], maze_t*),
-                   void(*link_tiles)(maze_tile_t*, maze_tile_t*, maze_t*))
-{
-  maze_tile_t *frontier[MAX_FRONTIER];
-  int frontier_p = 0;
-  frontier[frontier_p] = (get_start_tile)(maze);
-
-  int until = 0;
-  while (frontier_p >= 0 && until <= 50000) {
-    maze_tile_t *head = frontier[frontier_p];
-    int frontier_length = frontier_p;
-    frontier_p--;
-
-    maze_tile_t *neighbors[MAX_NEIGHBORS];
-    int neighbors_length = (get_neighbors)(head, neighbors, maze);
-    pick_next_head(neighbors_length, neighbors);
-
-    maze_tile_t *t_h;
-    maze_tile_t *t_c;
-    for (int v = 0; v < neighbors_length; v++) {
-      t_h = head;
-      t_c = neighbors[v];
-      frontier_p++;
-      if (v < neighbors_length - 1) {
-        // Re-add the current head as the back-track point
-        frontier[frontier_p] = t_h;
-      } else {
-        frontier[frontier_p] = t_c;
-      }
-    }
-
-    // Link the current head with the new head
-    if (neighbors_length > 0) {
-      (link_tiles)(t_h, t_c, maze);
-    }
-
-    until++;
-  }
-}

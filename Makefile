@@ -1,5 +1,5 @@
 all:
-	gcc -o maze maze.c main.c 
+	gcc -o maze dfs_maze_generator.c grid_maze_topology.c main.c 
 
 debug:
-	gcc -g -o maze maze.c main.c 
+	gcc -g -o maze dfs_maze_generator.c grid_maze_topology.c main.c 

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "maze.h"
+#include "dfs_maze_generator.h"
+#include "grid_maze_topology.h"
 
 void render_tiles(maze_t *maze);
 void render_tiles_small(maze_t *maze);
@@ -45,6 +46,16 @@ int main(int argc, char **argv)
 
   render_tiles_small(maze);
   render_tiles(maze);
+
+  for (int j = 0; j < height; j++) {
+    for (int i = 0; i < width; i++) {
+      free(tiles[j][i].tile_data);
+    }
+    free(tiles[j]);
+  }
+  free(tiles);
+  free(maze_data);
+  free(maze);
 
   return 0;
 }
