@@ -5,9 +5,6 @@
 
 void pick_next_head(int frontier_length, maze_tile_t *frontier[])
 {
-  if (frontier_length == 0) {
-    return;
-  }
   int pick = rand() % frontier_length;
   maze_tile_t *picked_tile = frontier[pick];
   frontier[pick] = frontier[frontier_length - 1];
@@ -31,24 +28,24 @@ void generate_maze(maze_t *maze,
 
     maze_tile_t *neighbors[MAX_NEIGHBORS];
     int neighbors_length = (get_neighbors)(head, neighbors, maze);
-    pick_next_head(neighbors_length, neighbors);
 
-    maze_tile_t *t_h;
-    maze_tile_t *t_c;
-    for (int v = 0; v < neighbors_length; v++) {
-      t_h = head;
-      t_c = neighbors[v];
-      frontier_p++;
-      if (v < neighbors_length - 1) {
-        // Re-add the current head as the back-track point
-        frontier[frontier_p] = t_h;
-      } else {
-        frontier[frontier_p] = t_c;
-      }
-    }
-
-    // Link the current head with the new head
     if (neighbors_length > 0) {
+      pick_next_head(neighbors_length, neighbors);
+
+      maze_tile_t *t_h;
+      maze_tile_t *t_c;
+      for (int v = 0; v < neighbors_length; v++) {
+        t_h = head;
+        t_c = neighbors[v];
+        frontier_p++;
+        if (v < neighbors_length - 1) {
+          // Re-add the current head as the back-track point
+          frontier[frontier_p] = t_h;
+        } else {
+          frontier[frontier_p] = t_c;
+        }
+      }
+
       (link_tiles)(t_h, t_c, maze);
     }
 
