@@ -14,20 +14,25 @@ void pick_next_head(int frontier_length, maze_tile_t *frontier[])
 void generate_maze(maze_t *maze,
                    maze_tile_t*(*get_start_tile)(maze_t*),
                    int(*get_neighbors)(maze_tile_t*, maze_tile_t*[], maze_t*),
-                   void(*link_tiles)(maze_tile_t*, maze_tile_t*, maze_t*))
+                   void(*link_tiles)(maze_tile_t*, maze_tile_t*, maze_t*),
+                   void(*mark_start_tile)(maze_tile_t*),
+                   void(*mark_end_tile)(maze_tile_t*))
 {
   maze_tile_t *frontier[MAX_FRONTIER];
   int frontier_p = 0;
-  frontier[frontier_p] = (get_start_tile)(maze);
+  maze_tile_t *start_tile = get_start_tile(maze);
+  frontier[frontier_p] = start_tile;
+  mark_start_tile(start_tile);
 
-  int until = 0;
-  while (frontier_p >= 0 && until <= 50000) {
+  int max_depth = 0;
+  maze_tile_t *deepest_tile;
+  while (frontier_p >= 0) {
     maze_tile_t *head = frontier[frontier_p];
     int frontier_length = frontier_p;
     frontier_p--;
 
     maze_tile_t *neighbors[MAX_NEIGHBORS];
-    int neighbors_length = (get_neighbors)(head, neighbors, maze);
+    int neighbors_length = get_neighbors(head, neighbors, maze);
 
     if (neighbors_length > 0) {
       pick_next_head(neighbors_length, neighbors);
@@ -46,9 +51,11 @@ void generate_maze(maze_t *maze,
         }
       }
 
-      (link_tiles)(t_h, t_c, maze);
+      link_tiles(t_h, t_c, maze);
+    } else if (frontier_p > max_depth) {
+      deepest_tile = head;
+      max_depth = frontier_p;
     }
-
-    until++;
   }
+  mark_end_tile(deepest_tile);
 }

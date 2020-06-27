@@ -171,3 +171,12 @@ void link_grid_tiles(maze_tile_t *head, maze_tile_t *current, maze_t *maze)
   }
 }
 
+void mark_start_grid_tile(maze_tile_t *tile)
+{
+  ((grid_maze_tile_t*)tile->tile_data)->type |= start;
+}
+
+void mark_end_grid_tile(maze_tile_t *tile)
+{
+  ((grid_maze_tile_t*)tile->tile_data)->type |= end;
+}

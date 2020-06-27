@@ -42,7 +42,7 @@ int main(int argc, char **argv)
   maze_t *maze = malloc(sizeof(maze_t));
   maze->maze_data = maze_data;
 
-  generate_maze(maze, *get_random_grid_perimeter_tile, *get_grid_neighbors, *link_grid_tiles);
+  generate_maze(maze, *get_random_grid_perimeter_tile, *get_grid_neighbors, *link_grid_tiles, *mark_start_grid_tile, *mark_end_grid_tile);
 
   render_tiles_small(maze);
   render_tiles(maze);
@@ -97,7 +97,14 @@ void render_tiles(maze_t *maze)
           printf("#");
         }
       } else {
-        printf(".");
+        grid_maze_tile_t *tile = tiles[t_j][t_i].tile_data;
+        if ((tile->type & start) == start) {
+          printf("S");
+        } else if ((tile->type & end) == end) {
+          printf("E");
+        } else {
+          printf(".");
+        }
       }
     }
     printf("\n");

@@ -9,6 +9,8 @@ typedef enum {
   passage_right = 2,
   passage_down = 4,
   passage_left = 8,
+  start = 16,
+  end = 32,
 } grid_tile_type;
 
 typedef struct {
@@ -28,5 +30,9 @@ maze_tile_t* get_random_grid_perimeter_tile(maze_t *maze);
 int get_grid_neighbors(maze_tile_t *tile, maze_tile_t *neighbors[], maze_t* maze);
 
 void link_grid_tiles(maze_tile_t *head, maze_tile_t *current, maze_t *maze);
+
+void mark_start_grid_tile(maze_tile_t *tile);
+
+void mark_end_grid_tile(maze_tile_t *tile);
 
 #endif
