@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include "dfs_maze_generator.h"
 
-#define MAX_FRONTIER 512
+#define MAX_FRONTIER 2048
 
 void pick_next_head(int frontier_length, maze_tile_t *frontier[])
 {
