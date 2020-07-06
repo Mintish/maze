@@ -29,6 +29,10 @@ maze_tile_t* get_random_grid_perimeter_tile(maze_t *maze);
 
 int get_grid_neighbors(maze_tile_t *tile, maze_tile_t *neighbors[], maze_t* maze);
 
+int get_valid_grid_neighbors(int neighbors_length, maze_tile_t *neighbors[], maze_tile_t *valid_neighbors[]);
+
+int get_all_grid_neighbors(maze_tile_t *maze_tile, maze_tile_t *neighbors[], grid_maze_data_t *maze);
+
 void link_grid_tiles(maze_tile_t *head, maze_tile_t *current, maze_t *maze);
 
 void mark_start_grid_tile(maze_tile_t *tile);

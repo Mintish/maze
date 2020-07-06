@@ -1,7 +1,7 @@
 #ifndef MAZE
 #define MAZE
 
-#define MAX_NEIGHBORS 8
+#define MAX_NEIGHBORS 256
 
 typedef struct {
   void *maze_data;

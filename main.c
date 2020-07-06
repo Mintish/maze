@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "dfs_maze_generator.h"
 #include "grid_maze_topology.h"
+#include "grid_maze_rooms_topology.h"
 #include "grid_maze_ppm_print.h"
 
 void render_tile_types(maze_t *maze, int *tile_types);
@@ -34,15 +35,37 @@ int main(int argc, char **argv)
     }
   }
 
-  grid_maze_data_t *maze_data = malloc(sizeof(grid_maze_data_t));
+  maze_room_t *room0 = malloc(sizeof(maze_room_t));
+  room0->start_i = 15;
+  room0->start_j = 15;
+  room0->height = 20;
+  room0->width = 20;
+  room0->marked_by = NULL;
+  room0->flags = unvisited;
+  maze_room_t *room1 = malloc(sizeof(maze_room_t));
+  room1->start_i = 5;
+  room1->start_j = 5;
+  room1->height = 5;
+  room1->width = 5;
+  room1->marked_by = NULL;
+  room1->flags = unvisited;
+
+  maze_room_t **rooms = malloc(sizeof(maze_room_t*) * 2);
+  rooms[0] = room0;
+  //rooms[0] = room1;
+  rooms[1] = room1;
+
+  grid_maze_room_data_t *maze_data = malloc(sizeof(grid_maze_room_data_t));
   maze_data->height = height;
   maze_data->width = width;
   maze_data->tiles = tiles;
+  maze_data->rooms_length = 1;
+  maze_data->rooms = rooms;
 
   maze_t *maze = malloc(sizeof(maze_t));
   maze->maze_data = maze_data;
 
-  generate_maze(maze, *get_random_grid_perimeter_tile, *get_grid_neighbors, *link_grid_tiles, *mark_start_grid_tile, *mark_end_grid_tile);
+  generate_maze(maze, *get_random_grid_perimeter_tile, *get_grid_room_neighbors, *link_grid_room_tiles, *mark_start_grid_tile, *mark_end_grid_tile);
 
   int *tile_types = malloc(sizeof(int) * height * width);
   render_tile_types(maze, tile_types);
@@ -55,6 +78,9 @@ int main(int argc, char **argv)
     }
     free(tiles[j]);
   }
+  free(room0);
+  free(room1);
+  free(rooms);
   free(tiles);
   free(maze_data);
   free(maze);
