@@ -4,6 +4,7 @@
 #include "grid_maze_topology.h"
 #include "grid_maze_rooms_topology.h"
 #include "grid_maze_ppm_print.h"
+#include "grid_maze_random_rooms.h"
 
 void render_tile_types(maze_t *maze, int *tile_types);
 int overlaps(int start_i, int width_i, int start_j, int width_j);
@@ -37,84 +38,10 @@ int main(int argc, char **argv)
     }
   }
 
-  /*
-  int rooms_length = 2;
-  maze_room_t *room0 = malloc(sizeof(maze_room_t));
-  room0->start_i = 15;
-  room0->start_j = 15;
-  room0->height = 20;
-  room0->width = 20;
-  room0->marked_by = NULL;
-  room0->flags = unvisited;
-  maze_room_t *room1 = malloc(sizeof(maze_room_t));
-  room1->start_i = 3;
-  room1->start_j = 3;
-  room1->height = 3;
-  room1->width = 3;
-  room1->marked_by = NULL;
-  room1->flags = unvisited;
-
-  maze_room_t **rooms = malloc(sizeof(maze_room_t*) * 2);
-  rooms[0] = room0;
-  //rooms[0] = room1;
-  rooms[1] = room1;
-
-  grid_maze_room_data_t *maze_data = malloc(sizeof(grid_maze_room_data_t));
-  maze_data->height = height;
-  maze_data->width = width;
-  maze_data->tiles = tiles;
-  maze_data->rooms_length = rooms_length;
-  maze_data->rooms = rooms;
-  */
-
   const int ROOMS_LEN = 35;
-  int room_count = 0;
   maze_room_t **rooms = malloc(sizeof(maze_room_t*) * ROOMS_LEN);
 
-  int tries_remaining = ROOMS_LEN * 10000;
-
-  while (room_count < ROOMS_LEN && tries_remaining > 0) {
-    int start_i = rand() % WIDTH;
-    int start_j = rand() % HEIGHT;
-    int width = rand() % 20;
-    int height = rand() % 20;
-
-    int overlaps_count = 0;
-
-    if (start_i <= 0 || start_j <= 0 || (start_i + width) >= WIDTH || (start_j + height) >= HEIGHT) {
-      overlaps_count++;
-    }
-
-    for (int r = 0; r < room_count; r++) {
-      int overlaps_i = overlaps(start_i - 1, width + 1, rooms[r]->start_i - 1, rooms[r]->width + 1);
-      int overlaps_j = overlaps(start_j - 1, height + 1, rooms[r]->start_j - 1, rooms[r]->height + 1);
-
-      if (overlaps_i && overlaps_j) {
-        overlaps_count++;
-      }
-    }
-
-    if (overlaps_count == 0) {
-      maze_room_t *current = malloc(sizeof(maze_room_t));
-      current->start_i = start_i;
-      current->start_j = start_j;
-      current->width = width;
-      current->height = height;
-      current->marked_by = NULL;
-      current->flags = unvisited;
-      rooms[room_count] = current;
-      room_count++;
-
-      /*
-      for (int i = 0; i < width && start_x + i < WIDTH; i++) {
-        for (int j = 0; j < height && start_y + j < HEIGHT; j++) {
-          tiles[start_y  + j][start_x + i] = 1;
-        }
-      }
-      */
-    }
-    tries_remaining--;
-  }
+  int room_count = generate_rooms(HEIGHT, WIDTH, ROOMS_LEN, rooms);
 
   grid_maze_room_data_t *maze_data = malloc(sizeof(grid_maze_room_data_t));
   maze_data->height = HEIGHT;
@@ -159,30 +86,6 @@ int main(int argc, char **argv)
   free(maze);
 
   return 0;
-}
-
-int overlaps(int start_i, int width_i, int start_j, int width_j)
-{
-  int start;
-  if (start_i < start_j) {
-    start = start_i;
-  } else {
-    start = start_j;
-  }
-
-  int end_i = start_i + width_i;
-  int end_j = start_j + width_j;
-  int end;
-  if (end_i > end_j) {
-    end = end_i;
-  } else {
-    end = end_j;
-  }
-
-  int width_proj = end - start;
-  int total_width = width_i + width_j;
-
-  return width_proj < total_width;
 }
 
 void render_tile_types(maze_t *maze, int *tile_types)
