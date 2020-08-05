@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,10 +45,10 @@ void render_tile_line(pgm_image *image, int tiles_length, int tiles[tiles_length
   int tile_width = image->width;
   for (int j = 0; j < tile_height; j++) {
     for (int i_i = 0; i_i < tile_width * tiles_length; i_i++) {
-      int i = i_i % 10;
-      int tile_offset = tiles[i_i / 10];
-      printf("%d", image->pixels[i + ((j + (tile_offset * 10)) * tile_width)]);
-      if (*line_max == 60) {
+      int i = i_i % tile_width;
+      int tile_offset = tiles[i_i / tile_width];
+      printf("%d", image->pixels[i + ((j + (tile_offset * tile_width)) * tile_width)]);
+      if (*line_max == 71) {
         printf("\n");
         *line_max = 0;
       } else {
